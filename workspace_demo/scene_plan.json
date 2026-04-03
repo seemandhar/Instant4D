@@ -1,0 +1,208 @@
+{
+  "title": "Rainy Night Police Roadblock",
+  "description": "A tense rainy night scene on a downtown street. Two police cruisers are positioned diagonally across the road forming a roadblock, flanked by a third unmarked police charger. Traffic cones and street barriers seal off the lane. A traffic warning sign is posted at the approach. Several civilian vehicles have stopped short of the perimeter. On both sidewalks, clusters of bystanders have gathered to watch the situation unfold. Rain slicks the pavement and the flashing blue and red lights reflect off the wet asphalt, creating a dramatic, high-contrast atmosphere.",
+  "map": "/Game/Carla/Maps/Town10HD_Opt",
+  "weather": "HardRainNight",
+  "weather_custom": null,
+  "camera": {
+    "x": -5.0,
+    "y": -20.0,
+    "z": 12.0,
+    "pitch": -25.0,
+    "yaw": 45.0,
+    "roll": 0.0,
+    "fov": 90
+  },
+  "vehicles": [
+    {
+      "blueprint": "vehicle.dodge.charger_police",
+      "color": "20,20,200",
+      "transform": {"x": 10.0, "y": 0.0, "z": 0.5, "pitch": 0, "yaw": 45, "roll": 0}
+    },
+    {
+      "blueprint": "vehicle.dodge.charger_police",
+      "color": "20,20,200",
+      "transform": {"x": 18.0, "y": 8.0, "z": 0.5, "pitch": 0, "yaw": 135, "roll": 0}
+    },
+    {
+      "blueprint": "vehicle.dodge.charger_police_2020",
+      "color": "15,15,15",
+      "transform": {"x": 4.0, "y": -6.0, "z": 0.5, "pitch": 0, "yaw": 60, "roll": 0}
+    },
+    {
+      "blueprint": "vehicle.tesla.model3",
+      "color": "200,50,50",
+      "transform": {"x": -10.0, "y": -5.0, "z": 0.5, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "vehicle.audi.a2",
+      "color": "180,180,180",
+      "transform": {"x": -16.0, "y": -8.0, "z": 0.5, "pitch": 0, "yaw": 5, "roll": 0}
+    },
+    {
+      "blueprint": "vehicle.nissan.micra",
+      "color": "100,130,100",
+      "transform": {"x": -12.0, "y": 4.0, "z": 0.5, "pitch": 0, "yaw": 355, "roll": 0}
+    }
+  ],
+  "props": [
+    {
+      "blueprint": "static.prop.trafficcone01",
+      "transform": {"x": 5.0, "y": -3.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficcone01",
+      "transform": {"x": 8.0, "y": -1.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficcone01",
+      "transform": {"x": 11.0, "y": 1.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficcone02",
+      "transform": {"x": 14.0, "y": 3.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficcone02",
+      "transform": {"x": 17.0, "y": 5.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficcone02",
+      "transform": {"x": 20.0, "y": 7.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.streetbarrier",
+      "transform": {"x": 6.0, "y": -4.5, "z": 0.3, "pitch": 0, "yaw": 90, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.streetbarrier",
+      "transform": {"x": 12.0, "y": -2.0, "z": 0.3, "pitch": 0, "yaw": 90, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.streetbarrier",
+      "transform": {"x": 18.0, "y": 0.5, "z": 0.3, "pitch": 0, "yaw": 90, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.streetbarrier",
+      "transform": {"x": 24.0, "y": 3.0, "z": 0.3, "pitch": 0, "yaw": 90, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficwarning",
+      "transform": {"x": 1.0, "y": -7.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.trafficwarning",
+      "transform": {"x": 1.0, "y": 5.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.busstop",
+      "transform": {"x": -6.0, "y": -17.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.bench01",
+      "transform": {"x": -1.0, "y": -16.0, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.bin",
+      "transform": {"x": -3.0, "y": -15.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.bin",
+      "transform": {"x": 4.0, "y": -15.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.bench02",
+      "transform": {"x": 22.0, "y": 17.0, "z": 0.3, "pitch": 0, "yaw": 180, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.bin",
+      "transform": {"x": 25.0, "y": 17.5, "z": 0.3, "pitch": 0, "yaw": 0, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.garbage01",
+      "transform": {"x": 27.0, "y": 16.5, "z": 0.3, "pitch": 0, "yaw": 30, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.atm",
+      "transform": {"x": 8.0, "y": -17.5, "z": 0.3, "pitch": 0, "yaw": 90, "roll": 0}
+    },
+    {
+      "blueprint": "static.prop.shoppingbag",
+      "transform": {"x": -2.0, "y": -14.5, "z": 0.3, "pitch": 0, "yaw": 45, "roll": 0}
+    }
+  ],
+  "walkers": [
+    {
+      "blueprint": "walker.pedestrian.0007",
+      "transform": {"x": -5.0, "y": -13.5, "z": 1.0, "pitch": 0, "yaw": 50, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0009",
+      "transform": {"x": -2.0, "y": -14.0, "z": 1.0, "pitch": 0, "yaw": 35, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0010",
+      "transform": {"x": 1.0, "y": -14.5, "z": 1.0, "pitch": 0, "yaw": 25, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0011",
+      "transform": {"x": 4.0, "y": -13.8, "z": 1.0, "pitch": 0, "yaw": 60, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0012",
+      "transform": {"x": 7.0, "y": -13.2, "z": 1.0, "pitch": 0, "yaw": 75, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0013",
+      "transform": {"x": 10.0, "y": -13.0, "z": 1.0, "pitch": 0, "yaw": 70, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0003",
+      "transform": {"x": 20.0, "y": 15.5, "z": 1.0, "pitch": 0, "yaw": 220, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0004",
+      "transform": {"x": 23.0, "y": 16.0, "z": 1.0, "pitch": 0, "yaw": 205, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0006",
+      "transform": {"x": 26.0, "y": 15.0, "z": 1.0, "pitch": 0, "yaw": 240, "roll": 0}
+    },
+    {
+      "blueprint": "walker.pedestrian.0008",
+      "transform": {"x": 29.0, "y": 14.5, "z": 1.0, "pitch": 0, "yaw": 200, "roll": 0}
+    }
+  ],
+  "extra_cameras": [
+    {
+      "name": "overhead_wide",
+      "x": 10.0,
+      "y": 2.0,
+      "z": 50.0,
+      "pitch": -90.0,
+      "yaw": 0.0,
+      "roll": 0.0,
+      "fov": 90
+    },
+    {
+      "name": "street_level_approach",
+      "x": -10.0,
+      "y": -2.0,
+      "z": 2.0,
+      "pitch": -5.0,
+      "yaw": 15.0,
+      "roll": 0.0,
+      "fov": 75
+    },
+    {
+      "name": "bystander_pov",
+      "x": 3.0,
+      "y": -11.0,
+      "z": 2.5,
+      "pitch": -10.0,
+      "yaw": 55.0,
+      "roll": 0.0,
+      "fov": 80
+    }
+  ]
+}

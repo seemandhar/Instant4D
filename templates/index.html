@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant4D</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Instant4D</h1>
+                <span class="badge">Multi-Agent Pipeline</span>
+            </div>
+            <div class="header-right">
+                <span id="stream-fps" class="fps-badge">-- FPS</span>
+                <span id="carla-status" class="status-dot disconnected">CARLA</span>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Panel: Controls -->
+            <aside class="panel panel-left">
+                <!-- Tabs: Generate / Controls -->
+                <div class="tab-bar">
+                    <button class="tab active" onclick="switchTab('generate')">Generate</button>
+                    <button class="tab" onclick="switchTab('controls')">Controls</button>
+                    <button class="tab" onclick="switchTab('gallery')">Gallery</button>
+                </div>
+
+                <!-- Generate Tab -->
+                <div id="tab-generate" class="tab-content active">
+                    <section class="section">
+                        <h2>AI Scene Generation</h2>
+                        <div class="form-group">
+                            <label for="scene-preset">Scene Preset</label>
+                            <select id="scene-preset" onchange="applyPreset(this.value)">
+                                <option value="">Custom (type your own)</option>
+                                <option value="A busy downtown intersection at sunset with taxis, pedestrians crossing the street, traffic cones, and a bus stop">🌇 Busy Intersection at Sunset</option>
+                                <option value="A rainy night police roadblock with police cars, traffic cones, street barriers, and bystanders watching from the sidewalk">🚔 Rainy Night Police Roadblock</option>
+                                <option value="A quiet suburban morning with parked cars, a mail truck, joggers on the sidewalk, benches, trash cans, and plant pots">🏡 Quiet Suburban Morning</option>
+                                <option value="A foggy highway accident scene with an ambulance, damaged cars, traffic warning signs, and emergency cones blocking lanes">🚑 Highway Accident Scene</option>
+                                <option value="A lively outdoor market street at noon with vendor carts, pedestrians, benches, trash cans, and colorful props lining both sides">🛒 Outdoor Market Street</option>
+                                <option value="A midnight street race scene with sports cars, motorcycles, neon-lit downtown, spectators, and traffic cones marking the course">🏎️ Midnight Street Race</option>
+                                <option value="A peaceful park area at sunset with benches, fountains, pedestrians walking dogs, plant pots, and a food truck nearby">🌳 Peaceful Park at Sunset</option>
+                                <option value="A construction zone on a city road with barriers, traffic cones, warning signs, a few trucks, and workers in hard hats">🚧 Construction Zone</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="prompt">Scene Description</label>
+                            <textarea id="prompt" rows="4" placeholder="A busy city intersection at sunset with cars, pedestrians, and street furniture..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="model">Model</label>
+                            <select id="model">
+                                <option value="sonnet">Sonnet (faster)</option>
+                                <option value="opus">Opus (higher quality)</option>
+                            </select>
+                        </div>
+                        <button id="btn-generate" class="btn btn-primary btn-full" onclick="generateScene()">
+                            🤖 Generate Scene
+                        </button>
+                        <div style="text-align:center; margin: 6px 0; color: var(--text-muted); font-size: 11px;">— or —</div>
+                        <button id="btn-demo" class="btn btn-full" style="background: var(--accent-secondary, #7c3aed); color: white;" onclick="loadDemo()">
+                            ⚡ Load Demo Scene (Rainy Night Roadblock)
+                        </button>
+                    </section>
+
+                    <!-- Pipeline Log (compact) -->
+                    <section class="section" style="flex:1; min-height:150px; display:flex; flex-direction:column;">
+                        <div class="log-header">
+                            <h2>Pipeline Log</h2>
+                            <button class="btn btn-sm" onclick="clearLog()">Clear</button>
+                        </div>
+                        <div id="pipeline-log" class="log-box" style="flex:1;">
+                            <div class="log-entry log-info">Ready. Enter a scene description and click Generate.</div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Controls Tab -->
+                <div id="tab-controls" class="tab-content">
+                    <!-- Weather -->
+                    <section class="section">
+                        <h2>Weather</h2>
+                        <select id="weather-preset" onchange="setWeather()">
+                            <option value="ClearNoon">Clear Noon</option>
+                            <option value="ClearSunset">Clear Sunset</option>
+                            <option value="ClearNight">Clear Night</option>
+                            <option value="CloudyNoon">Cloudy Noon</option>
+                            <option value="CloudySunset">Cloudy Sunset</option>
+                            <option value="CloudyNight">Cloudy Night</option>
+                            <option value="WetNoon">Wet Noon</option>
+                            <option value="WetCloudyNoon">Wet Cloudy</option>
+                            <option value="SoftRainNoon">Soft Rain</option>
+                            <option value="SoftRainSunset">Soft Rain Sunset</option>
+                            <option value="MidRainyNoon">Mid Rain</option>
+                            <option value="HardRainNoon">Hard Rain</option>
+                            <option value="HardRainNight">Hard Rain Night</option>
+                        </select>
+                    </section>
+
+                    <!-- Map -->
+                    <section class="section">
+                        <h2>Map</h2>
+                        <select id="map-select">
+                            <option value="Town10HD_Opt">Town10HD (Modern Downtown)</option>
+                            <option value="Town01_Opt">Town01 (Basic)</option>
+                            <option value="Town02_Opt">Town02 (Residential)</option>
+                            <option value="Town03_Opt">Town03 (Highway)</option>
+                            <option value="Town04_Opt">Town04 (Small Town)</option>
+                            <option value="Town05_Opt">Town05 (Urban)</option>
+                        </select>
+                        <button class="btn btn-sm" style="margin-top:4px" onclick="loadMap()">Load Map</button>
+                    </section>
+
+                    <!-- Spawn -->
+                    <section class="section">
+                        <h2>Spawn Vehicle</h2>
+                        <select id="vehicle-bp">
+                            <option value="vehicle.tesla.model3">Tesla Model 3</option>
+                            <option value="vehicle.audi.tt">Audi TT</option>
+                            <option value="vehicle.bmw.grandtourer">BMW Grand Tourer</option>
+                            <option value="vehicle.chevrolet.impala">Chevrolet Impala</option>
+                            <option value="vehicle.dodge.charger_2020">Dodge Charger 2020</option>
+                            <option value="vehicle.jeep.wrangler_rubicon">Jeep Wrangler</option>
+                            <option value="vehicle.mercedes.coupe_2020">Mercedes Coupe 2020</option>
+                            <option value="vehicle.toyota.prius">Toyota Prius</option>
+                            <option value="vehicle.volkswagen.t2">VW T2 Van</option>
+                            <option value="vehicle.dodge.charger_police">Police Charger</option>
+                            <option value="vehicle.ford.ambulance">Ambulance</option>
+                        </select>
+                        <div class="input-row" style="margin-top:4px">
+                            <input type="number" id="spawn-x" value="0" step="2" placeholder="X">
+                            <input type="number" id="spawn-y" value="0" step="2" placeholder="Y">
+                            <input type="number" id="spawn-yaw" value="0" step="45" placeholder="Yaw">
+                        </div>
+                        <button class="btn btn-sm" onclick="spawnVehicle()">Spawn</button>
+                    </section>
+
+                    <!-- Camera Position -->
+                    <section class="section">
+                        <h2>Camera</h2>
+                        <div class="info-box" id="camera-info">
+                            <div class="info-row"><span class="info-label">Position</span><span class="info-value" id="cam-pos">--</span></div>
+                            <div class="info-row"><span class="info-label">Rotation</span><span class="info-value" id="cam-rot">--</span></div>
+                        </div>
+                        <div class="form-group" style="margin-top:8px">
+                            <div class="input-row">
+                                <input type="number" id="cam-x" value="0" step="5" placeholder="X">
+                                <input type="number" id="cam-y" value="0" step="5" placeholder="Y">
+                                <input type="number" id="cam-z" value="20" step="5" placeholder="Z">
+                            </div>
+                            <div class="input-row" style="margin-top:4px">
+                                <input type="number" id="cam-pitch" value="-30" step="5" placeholder="Pitch">
+                                <input type="number" id="cam-yaw" value="0" step="15" placeholder="Yaw">
+                            </div>
+                            <button class="btn btn-sm" style="margin-top:4px" onclick="teleportCamera()">Teleport</button>
+                        </div>
+                    </section>
+
+                    <!-- Actions -->
+                    <section class="section">
+                        <h2>Actions</h2>
+                        <div class="btn-row">
+                            <button class="btn btn-sm" onclick="saveSnapshot()">Save Snapshot</button>
+                            <button class="btn btn-sm btn-danger" onclick="clearScene()">Clear Scene</button>
+                        </div>
+                    </section>
+
+                    <!-- Scene Info -->
+                    <section class="section">
+                        <h2>Scene Info</h2>
+                        <div id="scene-info" class="info-box">
+                            <p>Loading...</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Gallery Tab -->
+                <div id="tab-gallery" class="tab-content">
+                    <section class="section">
+                        <h2>Rendered Images</h2>
+                        <button class="btn btn-sm" onclick="refreshImages()" style="margin-bottom:8px">Refresh</button>
+                        <div id="image-gallery" class="image-gallery-vertical"></div>
+                    </section>
+                </div>
+            </aside>
+
+            <!-- Center: Live 3D Viewport -->
+            <main class="panel panel-center">
+                <div class="viewport-3d" id="viewport-3d">
+                    <!-- Live MJPEG stream -->
+                    <img id="stream-img" class="stream-img" src="" alt="CARLA Live Stream">
+                    <!-- Overlay HUD -->
+                    <div class="viewport-hud" id="viewport-hud">
+                        <div class="hud-top-left">
+                            <span id="hud-map">--</span>
+                        </div>
+                        <div class="hud-top-right">
+                            <span id="hud-fps">-- FPS</span>
+                        </div>
+                        <div class="hud-bottom-left">
+                            <span id="hud-pos">X: -- Y: -- Z: --</span>
+                        </div>
+                        <div class="hud-bottom-center">
+                            <div class="controls-hint" id="controls-hint">
+                                Click viewport to enable controls | WASD: Move | Mouse: Look | Q/E: Up/Down | Scroll: Zoom
+                            </div>
+                        </div>
+                        <div class="hud-crosshair" id="crosshair">+</div>
+                    </div>
+                    <!-- No stream fallback -->
+                    <div class="viewport-placeholder" id="stream-placeholder">
+                        <p>Connecting to CARLA stream...</p>
+                        <p class="hint">Make sure the streaming server is running on port 5556</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

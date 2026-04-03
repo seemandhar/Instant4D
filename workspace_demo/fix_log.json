@@ -1,0 +1,9 @@
+{
+  "fixes_applied": [
+    "Walker blueprint replacement (5 IDs): walker.pedestrian.0001 -> walker.pedestrian.0007 at (x=-5, y=-13.5); walker.pedestrian.0005 -> walker.pedestrian.0009 at (x=-2, y=-14.0); walker.pedestrian.0015 -> walker.pedestrian.0011 at (x=4, y=-13.8); walker.pedestrian.0020 -> walker.pedestrian.0012 at (x=7, y=-13.2); walker.pedestrian.0002 -> walker.pedestrian.0013 at (x=10, y=-13.0). All five replacements use confirmed-working IDs and preserve the original left-sidewalk positions and yaw angles exactly.",
+    "Vehicle blueprint replacement: vehicle.ford.crown_victoria -> vehicle.dodge.charger_police_2020, color unchanged at '15,15,15', transform unchanged at (x=4, y=-6, z=0.5, pitch=0, yaw=60, roll=0). This restores the three-vehicle roadblock perimeter on the negative-Y flank.",
+    "Prop blueprint replacement: static.prop.trashcan -> static.prop.bin at (x=4, y=-15.5, z=0.3). static.prop.bin is already confirmed working in this scene (two other instances spawned successfully). Transform and yaw are unchanged.",
+    "Updated build_scene.py module docstring to accurately describe the corrected blueprint IDs (charger_police_2020 for the third police vehicle, static.prop.bin in place of trashcan, and the corrected walker ID range 0007/0009/0010/0011/0012/0013 for the left sidewalk). No logic changes were made to the script — it reads all blueprint IDs from scene_plan.json at runtime."
+  ],
+  "confidence": 90
+}

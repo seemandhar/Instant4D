@@ -1,0 +1,48 @@
+{
+  "approved": false,
+  "issues": [
+    {
+      "severity": "error",
+      "line": "scene_plan.json — vehicle entry 3, blueprint field",
+      "description": "The blueprint ID 'vehicle.ford.crown' does not exist in CARLA 0.9.13. The correct identifier for the Ford Crown Victoria is 'vehicle.ford.crown_victoria'. The find() call in find_bp() will raise and be silently swallowed, and filter('vehicle.ford.crown') will return an empty list. The result is that bp is None, spawn_vehicle() returns None, and the unmarked police Crown Victoria is never placed in the scene. The z-retry ladder and map-spawn-point fallback all run against None and produce no actor.",
+      "fix": "In scene_plan.json change \"blueprint\": \"vehicle.ford.crown\" to \"blueprint\": \"vehicle.ford.crown_victoria\"."
+    },
+    {
+      "severity": "warning",
+      "line": "scene_plan.json — props list, blueprint static.prop.trashcan02",
+      "description": "The blueprint 'static.prop.trashcan02' is not reliably present in CARLA 0.9.13 across all content distributions. The commonly available variant is 'static.prop.trashcan'. If the blueprint is absent on the target server, spawn_prop() logs a warning and skips the prop — no crash, but the prop is missing from the scene.",
+      "fix": "Change \"blueprint\": \"static.prop.trashcan02\" to \"blueprint\": \"static.prop.trashcan\" in scene_plan.json, or verify the ID exists on the target installation by running bp_lib.filter('static.prop.trashcan*') against the live server."
+    },
+    {
+      "severity": "warning",
+      "line": "scene_plan.json — walkers list, blueprints walker.pedestrian.0025, 0030, 0035, 0040",
+      "description": "CARLA 0.9.13 includes up to 48 pedestrian variants but not every integer in the 0001–0048 range is populated. The IDs 0025, 0030, 0035, and 0040 may be absent on some content pack configurations. When absent, spawn_walker() logs a warning and skips the walker — not a crash, but up to four bystanders will be missing from the sidewalks.",
+      "fix": "Verify these IDs exist on the target server with bp_lib.filter('walker.pedestrian.*'), or substitute confirmed IDs such as 0002, 0003, 0004, 0006 in scene_plan.json."
+    },
+    {
+      "severity": "warning",
+      "line": "build_scene.py line 389 — os.makedirs at module level (outside try block)",
+      "description": "os.makedirs(RENDERS_DIR, exist_ok=True) executes unconditionally at module level before any try block. If the filesystem is read-only or the path is otherwise unavailable, this raises an uncaught OSError that terminates the script before any CARLA connection is attempted, before render_result.json is written, and before async mode can be restored (there is nothing to restore yet, so that is fine). The error message will not follow the structured logging pattern used elsewhere.",
+      "fix": "Move the makedirs call inside the try block immediately after the client connects, or wrap it in its own try/except with a clear printed error and sys.exit(1)."
+    },
+    {
+      "severity": "info",
+      "line": "build_scene.py line 555 — time.sleep(2) during synchronous mode",
+      "description": "time.sleep(2) is called after the 20-tick settle loop while synchronous mode is active. In synchronous mode, wall-clock sleep does not advance simulation time. The sleep wastes two real-world seconds but does not affect correctness since the 20 preceding ticks have already settled physics.",
+      "fix": "No action required for correctness. If additional settling is needed, add more world.tick() calls instead of a sleep."
+    },
+    {
+      "severity": "info",
+      "line": "build_scene.py line 91 — BGRA to RGB channel reindex",
+      "description": "arr[:, :, [2, 1, 0]] correctly selects indices 2 (R), 1 (G), 0 (B) from the BGRA raw_data array and produces a 3-channel uint8 RGB array that Pillow's fromarray() interprets correctly. The conversion is correct.",
+      "fix": "No change needed. Consider adding an inline comment — '# BGRA raw_data: swap R/B channels, drop A' — for future maintainers."
+    },
+    {
+      "severity": "info",
+      "line": "build_scene.py lines 34-38 — RENDERS_DIR path derivation",
+      "description": "RENDERS_DIR is resolved as os.path.dirname(os.path.dirname(os.path.abspath(__file__)))/renders, which is correct when build_scene.py lives at workspace/build_scene.py inside the repo root. Moving or symlinking the script silently changes the output path.",
+      "fix": "Consider honouring an environment variable override: RENDERS_DIR = os.environ.get('CARLA_RENDERS_DIR', os.path.join(REPO_ROOT, 'renders'))."
+    }
+  ],
+  "summary": "The script's core architecture is correct. CARLA Client connection, synchronous mode enable/disable lifecycle, z-retry spawn ladder with map-spawn-point fallback, BGRA-to-RGB image conversion, camera capture loop in synchronous mode (listen + tick), actor tracking in all_actors, cleanup in the finally block, render_result.json written unconditionally in finally, and async mode restoration are all implemented properly. all_ok and all state variables are correctly initialized before the try block. The single blocking error is a wrong blueprint ID: 'vehicle.ford.crown' must be 'vehicle.ford.crown_victoria' — this vehicle will never spawn as written. Two additional warnings identify blueprint IDs that may be absent on some CARLA 0.9.13 installations (static.prop.trashcan02 and four pedestrian IDs); these produce logged warnings and skip silently rather than crashing. Fix the vehicle blueprint ID before running the script."
+}

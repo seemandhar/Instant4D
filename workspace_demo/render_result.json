@@ -1,0 +1,48 @@
+{
+  "success": true,
+  "scene": "Rainy Night Police Roadblock",
+  "map": "Town10HD_Opt",
+  "weather": "HardRainNight",
+  "actors_spawned": 36,
+  "vehicles_spawned": 6,
+  "vehicles_failed": [],
+  "props_spawned": 21,
+  "props_failed": [],
+  "walkers_spawned": 9,
+  "walkers_failed": [
+    "walker.pedestrian.0007"
+  ],
+  "renders": [
+    {
+      "name": "main_view",
+      "path": "/home/sejain/research/carla-3d-opus/renders/main_view.png",
+      "success": true
+    },
+    {
+      "name": "overhead_wide",
+      "path": "/home/sejain/research/carla-3d-opus/renders/overhead_wide.png",
+      "success": true
+    },
+    {
+      "name": "street_level_approach",
+      "path": "/home/sejain/research/carla-3d-opus/renders/street_level_approach.png",
+      "success": true
+    },
+    {
+      "name": "bystander_pov",
+      "path": "/home/sejain/research/carla-3d-opus/renders/bystander_pov.png",
+      "success": true
+    }
+  ],
+  "images": [
+    "/home/sejain/research/carla-3d-opus/renders/main_view.png",
+    "/home/sejain/research/carla-3d-opus/renders/overhead_wide.png",
+    "/home/sejain/research/carla-3d-opus/renders/street_level_approach.png",
+    "/home/sejain/research/carla-3d-opus/renders/bystander_pov.png"
+  ],
+  "images_failed": [],
+  "errors": [],
+  "warnings": [
+    "walker.pedestrian.0007"
+  ]
+}

@@ -503,6 +503,84 @@ select { cursor: pointer; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Scene Edit Bar */
+.scene-edit-bar {
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.edit-input-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.edit-input {
+    flex: 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.edit-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.edit-input::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.btn-edit {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.btn-edit:hover {
+    background: var(--accent-hover);
+}
+
+.btn-edit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.edit-status {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    min-height: 16px;
+    transition: color 0.3s;
+}
+
+.edit-status.active {
+    color: var(--accent);
+}
+
+.edit-status.success {
+    color: var(--success);
+}
+
+.edit-status.error {
+    color: var(--danger);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

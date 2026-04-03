@@ -239,6 +239,19 @@
                         <p class="hint">Make sure the streaming server is running on port 5556</p>
                     </div>
                 </div>
+
+                <!-- Scene Edit Bar -->
+                <div class="scene-edit-bar">
+                    <div class="edit-input-wrap">
+                        <input type="text" id="edit-command" class="edit-input"
+                               placeholder="Edit the scene: &quot;remove all cars&quot;, &quot;add benches along the road&quot;, &quot;make it rainy night&quot;..."
+                               onkeydown="if(event.key==='Enter') editScene()">
+                        <button id="btn-edit" class="btn btn-edit" onclick="editScene()">
+                            ✏️ Edit Scene
+                        </button>
+                    </div>
+                    <div class="edit-status" id="edit-status"></div>
+                </div>
             </main>
         </div>
     </div>

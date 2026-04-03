@@ -17,6 +17,7 @@ from flask_cors import CORS
 from config import PipelineConfig, PROJECT_ROOT, get_claude_auth_env, RENDERS_DIR, WORKSPACE_DIR
 from pipeline import run_pipeline, PipelineEvent
 from incremental_builder import IncrementalBuilder
+from scene_editor import get_scene_state, build_edit_prompt, execute_edit_plan
 
 log = logging.getLogger(__name__)
 
@@ -150,6 +151,108 @@ def get_job(job_id):
         "status": job["status"],
         "result": job["result"],
     })
+
+
+STREAM_PORT = int(os.environ.get("STREAM_PORT", 5556))
+
+
+@app.route("/proxy/stream")
+def proxy_stream():
+    """Proxy the MJPEG stream from carla_stream.py through Flask's port.
+
+    This allows the UI to work even when only one port (5555) is exposed
+    (SSH tunnel, firewall, reverse proxy, etc.).
+    """
+    import socket
+
+    def generate():
+        sock = None
+        try:
+            sock = socket.create_connection(("127.0.0.1", STREAM_PORT), timeout=10)
+            sock.sendall(b"GET /stream HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
+            # Skip HTTP response headers
+            buf = b""
+            while b"\r\n\r\n" not in buf:
+                data = sock.recv(4096)
+                if not data:
+                    return
+                buf += data
+            # Yield everything after the headers
+            _, body = buf.split(b"\r\n\r\n", 1)
+            if body:
+                yield body
+            # Stream the rest
+            while True:
+                data = sock.recv(65536)
+                if not data:
+                    break
+                yield data
+        except GeneratorExit:
+            pass
+        except Exception as e:
+            log.warning("Stream proxy error: %s", e)
+        finally:
+            if sock:
+                try:
+                    sock.close()
+                except Exception:
+                    pass
+
+    return Response(
+        generate(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.route("/proxy/info")
+def proxy_info():
+    """Proxy stream info endpoint."""
+    import urllib.request
+    try:
+        req = urllib.request.urlopen(
+            f"http://127.0.0.1:{STREAM_PORT}/info", timeout=5
+        )
+        data = req.read()
+        return Response(data, mimetype="application/json")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.route("/proxy/control", methods=["POST", "OPTIONS"])
+def proxy_control():
+    """Proxy camera control commands to the stream server."""
+    if request.method == "OPTIONS":
+        return "", 200
+    import urllib.request
+    try:
+        body = request.get_data()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{STREAM_PORT}/control",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = resp.read()
+        return Response(data, mimetype="application/json")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.route("/proxy/snapshot")
+def proxy_snapshot():
+    """Proxy snapshot endpoint."""
+    import urllib.request
+    try:
+        req = urllib.request.urlopen(
+            f"http://127.0.0.1:{STREAM_PORT}/snapshot", timeout=10
+        )
+        data = req.read()
+        content_type = req.headers.get("Content-Type", "image/jpeg")
+        return Response(data, mimetype=content_type)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
 
 
 @app.route("/api/images")
@@ -346,6 +449,168 @@ def _run_carla_command(script: str, timeout: int = 60) -> str:
         return json.dumps({"success": False, "error": "Command timed out"})
     except Exception as e:
         return json.dumps({"success": False, "error": str(e)})
+
+
+@app.route("/api/edit_scene", methods=["POST"])
+def edit_scene():
+    """Edit the current scene using natural language commands.
+
+    The AI analyzes the current scene state and produces an edit plan
+    that is executed directly against CARLA in real-time.
+    """
+    data = request.json or {}
+    command = data.get("command", "").strip()
+    if not command:
+        return jsonify({"error": "command is required"}), 400
+
+    job_id = str(uuid.uuid4())[:8]
+    jobs[job_id] = {
+        "id": job_id,
+        "prompt": f"(edit) {command}",
+        "status": "running",
+        "events": Queue(),
+        "result": None,
+        "created_at": time.time(),
+    }
+
+    t = threading.Thread(target=_run_edit_bg, args=(job_id, command), daemon=True)
+    t.start()
+
+    return jsonify({"job_id": job_id, "status": "running"})
+
+
+def _run_edit_bg(job_id: str, command: str):
+    """Run scene edit in background thread."""
+    job = jobs[job_id]
+
+    def event_cb(event: dict):
+        if "ts" not in event:
+            event["ts"] = time.time()
+        job["events"].put(event)
+
+    try:
+        # Phase 1: Get current scene state from CARLA
+        event_cb({"type": "edit_phase", "data": {"phase": "analyzing", "message": "Analyzing current scene..."}})
+        scene_state = get_scene_state()
+        if "error" in scene_state:
+            raise RuntimeError(f"Failed to get scene state: {scene_state['error']}")
+
+        event_cb({
+            "type": "edit_phase",
+            "data": {
+                "phase": "scene_state",
+                "message": f"Scene: {scene_state.get('total_actors', 0)} actors on {scene_state.get('map', '?')}",
+                "vehicles": len(scene_state.get("vehicles", [])),
+                "props": len(scene_state.get("props", [])),
+                "walkers": len(scene_state.get("walkers", [])),
+            },
+        })
+
+        # Phase 2: Ask AI for edit plan
+        event_cb({"type": "edit_phase", "data": {"phase": "planning", "message": "AI is planning the edit..."}})
+
+        prompt = build_edit_prompt(scene_state, command)
+        edit_plan = _get_edit_plan_from_ai(prompt)
+
+        if not edit_plan:
+            raise RuntimeError("AI did not produce a valid edit plan")
+
+        description = edit_plan.get("description", "")
+        actions = edit_plan.get("actions", [])
+        event_cb({
+            "type": "edit_phase",
+            "data": {
+                "phase": "plan_ready",
+                "message": f"Plan: {description} ({len(actions)} actions)",
+                "actions": len(actions),
+                "description": description,
+            },
+        })
+
+        # Phase 3: Execute edit plan
+        event_cb({"type": "edit_phase", "data": {"phase": "executing", "message": "Executing edit..."}})
+        result = execute_edit_plan(edit_plan, event_callback=event_cb)
+
+        event_cb({
+            "type": "edit_complete",
+            "data": {
+                "success": True,
+                "description": description,
+                "actions_executed": result.get("actions_executed", 0),
+            },
+        })
+
+        job["result"] = result
+        job["status"] = "completed"
+
+    except Exception as e:
+        log.exception("Edit bg failed")
+        job["result"] = {"success": False, "error": str(e)}
+        job["status"] = "failed"
+        event_cb({"type": "error", "data": {"message": str(e)}})
+    finally:
+        job["events"].put(None)  # Sentinel
+
+
+def _get_edit_plan_from_ai(prompt: str) -> dict:
+    """Call Claude to generate an edit plan from the prompt."""
+    import asyncio as _asyncio
+    from claude_agent_sdk import (
+        query, ClaudeAgentOptions,
+        AssistantMessage, ResultMessage, TextBlock,
+    )
+
+    async def _ask():
+        full_response = ""
+        config = PipelineConfig()
+        auth_env = get_claude_auth_env()
+
+        options = ClaudeAgentOptions(
+            model="sonnet",
+            max_turns=3,
+            system_prompt="You are a CARLA scene editor. Output ONLY valid JSON with no markdown fences.",
+        )
+        if auth_env.get("ANTHROPIC_API_KEY"):
+            options.api_key = auth_env["ANTHROPIC_API_KEY"]
+
+        async for message in query(prompt=prompt, options=options):
+            if isinstance(message, ResultMessage):
+                # Final result — use .result attribute
+                full_response = getattr(message, "result", "") or ""
+            elif isinstance(message, AssistantMessage):
+                # Extract text from content blocks
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        full_response = block.text
+
+        return full_response
+
+    response_text = _asyncio.run(_ask())
+
+    # Extract JSON from response
+    if not response_text:
+        return None
+
+    # Try to parse as JSON directly
+    text = response_text.strip()
+    # Strip markdown fences if present
+    if text.startswith("```"):
+        lines = text.split("\n")
+        lines = [l for l in lines if not l.strip().startswith("```")]
+        text = "\n".join(lines)
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try to find JSON in the response
+        import re
+        match = re.search(r'\{[\s\S]*\}', text)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+    return None
 
 
 DEMO_DIR = PROJECT_ROOT / "workspace_demo"

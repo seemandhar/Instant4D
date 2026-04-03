@@ -22,9 +22,13 @@ component will read your plan and execute it live in CARLA.
 
 ## Available Assets in CARLA 0.9.13
 
-### Maps
-- Town01 through Town05 (and their _Opt variants)
-- Town10HD / Town10HD_Opt (modern downtown, best visual quality)
+### Maps (ONLY these maps exist — do NOT use Town06, Town07, Town08, Town09, or any other)
+- Town01_Opt — small town with T-junctions, residential feel
+- Town02_Opt — small town with mixed commercial/residential
+- Town03_Opt — large map with roundabout, urban/rural mix
+- Town04_Opt — highway with small town, mountain backdrop, BEST for desert/mountain scenes
+- Town05_Opt — multi-lane urban roads, overpasses, commercial district
+- Town10HD_Opt — modern downtown, highest visual quality, BEST for city scenes
 
 ### Vehicle blueprints (prefix: vehicle.*)
 **IMPORTANT: Use these EXACT names. Do NOT use "mercedes-benz" — the correct name is "mercedes".**

@@ -547,6 +547,18 @@ def main():
         # current_map might be like "Carla/Maps/Town10HD_Opt" or just "Town10HD_Opt"
         current_map_short = current_map.rstrip("/").split("/")[-1]
 
+        # Validate map exists
+        available_maps = [m.rstrip("/").split("/")[-1] for m in client.get_available_maps()]
+        if map_name not in available_maps:
+            emit_log("map '%s' not available, falling back. Available: %s" % (
+                map_name, ", ".join(sorted(available_maps))), level="warning")
+            # Try to find a close match
+            for candidate in ["Town04_Opt", "Town10HD_Opt", "Town05_Opt", "Town03_Opt"]:
+                if candidate in available_maps:
+                    map_name = candidate
+                    emit_log("using fallback map: %s" % map_name, level="info")
+                    break
+
         if current_map_short == map_name:
             emit_log("map '%s' already loaded, skipping reload" % map_name)
         else:

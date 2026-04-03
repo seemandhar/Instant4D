@@ -1,6 +1,8 @@
 // CARLA 3D Scene Generator v2 - Interactive Frontend with Incremental Builder
 
-const STREAM_URL = window.location.protocol + '//' + window.location.hostname + ':5556';
+// Stream via proxy (same origin) — works through SSH tunnels, firewalls, reverse proxies
+const STREAM_URL = '';  // Same origin, proxied via /proxy/*
+const DIRECT_STREAM_URL = window.location.protocol + '//' + window.location.hostname + ':5556';
 const API_URL = '';  // Same origin for Flask API
 
 let currentJobId = null;
@@ -28,13 +30,21 @@ function initStream() {
     img.onerror = () => {
         placeholder.classList.remove('hidden');
         img.style.opacity = '0';
-        setTimeout(initStream, 3000);  // Retry
+        // Try proxy first, then direct
+        if (img.src.includes('/proxy/stream')) {
+            console.log('Proxy stream failed, trying direct...');
+            img.src = DIRECT_STREAM_URL + '/stream';
+        } else {
+            console.log('Direct stream failed, retrying proxy in 3s...');
+            setTimeout(initStream, 3000);
+        }
     };
     img.onload = () => {
         placeholder.classList.add('hidden');
         img.style.opacity = '1';
     };
-    img.src = STREAM_URL + '/stream';
+    // Start with proxy (works through single port)
+    img.src = '/proxy/stream';
 }
 
 // ─── Interactive Camera Controls ─────────────────────────────────────────────
@@ -123,7 +133,7 @@ function releaseCursor() {
 }
 
 function streamControl(data) {
-    fetch(STREAM_URL + '/control', {
+    fetch('/proxy/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -133,7 +143,7 @@ function streamControl(data) {
 // ─── HUD / Info polling ──────────────────────────────────────────────────────
 
 function pollStreamInfo() {
-    fetch(STREAM_URL + '/info')
+    fetch('/proxy/info')
         .then(r => r.json())
         .then(data => {
             // Status
@@ -181,7 +191,7 @@ function pollStreamInfo() {
 
 function updateSceneInfo(data) {
     // Also fetch actor counts from stream server
-    fetch(STREAM_URL + '/control', {
+    fetch('/proxy/control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: 'get_actors' }),
@@ -489,6 +499,10 @@ function handlePipelineEvent(event, isDemo) {
             break;
 
         // ─── Incremental Builder events ───
+        case 'build_starting':
+            logEntry('🚀 ' + (d.message || 'Starting incremental build...'), 'agent');
+            showBuildProgress();
+            break;
         case 'plan_parsed':
             logEntry('📐 Plan ready, starting live build...', 'agent');
             // Precompute total spawns from plan data if available
@@ -510,10 +524,15 @@ function handlePipelineEvent(event, isDemo) {
         case 'build_phase': {
             const phase = d.phase || d.name || '';
             const phaseLabels = {
+                'subprocess': '🏗️ Starting builder',
+                'init': '⚙️ Initializing',
+                'connect': '🔌 Connecting to CARLA',
+                'map': '🗺️ Loading map',
                 'map_load': '🗺️ Loading map',
+                'cleanup': '🧹 Clearing scene',
+                'clear_scene': '🧹 Clearing scene',
                 'weather': '🌤️ Setting weather',
                 'camera': '📷 Positioning camera',
-                'clear_scene': '🧹 Clearing scene',
                 'spawning': '🏗️ Spawning actors',
                 'capture': '📸 Capturing renders',
                 'vehicles': '🚗 Spawning vehicles',
@@ -524,18 +543,17 @@ function handlePipelineEvent(event, isDemo) {
             logEntry(label, 'info');
 
             // Show/hide map loading overlay
-            if (phase === 'map_load') {
-                showMapLoading(d.map || '');
-            } else {
-                hideMapLoading();
+            if (phase === 'map' || phase === 'map_load') {
+                if (d.status === 'started') showMapLoading(d.map || '');
+                else hideMapLoading();
             }
 
             // Update progress bar phase text
             let percent = calcBuildPercent();
-            if (phase === 'map_load') percent = 5;
+            if (phase === 'map' || phase === 'map_load') percent = 5;
             else if (phase === 'weather') percent = 10;
             else if (phase === 'camera') percent = 15;
-            else if (phase === 'clear_scene') percent = 8;
+            else if (phase === 'cleanup' || phase === 'clear_scene') percent = 8;
             else if (phase === 'capture') percent = 95;
             updateBuildProgressBar(Math.max(percent, calcBuildPercent()), label);
             break;
@@ -575,6 +593,9 @@ function handlePipelineEvent(event, isDemo) {
             break;
         }
 
+        case 'build_log':
+            logEntry(`📝 ${d.message || ''}`, 'info');
+            break;
         case 'build_warning':
             logEntry(`⚠️ ${d.message || d.warning || 'Warning'}`, 'error');
             break;
@@ -605,6 +626,113 @@ function resetGenerateBtn() {
     const btn = document.getElementById('btn-generate');
     btn.disabled = false;
     btn.innerHTML = '🤖 Generate Scene';
+}
+
+// ─── Scene Editing (Natural Language) ────────────────────────────────────────
+
+function editScene() {
+    const input = document.getElementById('edit-command');
+    const command = input.value.trim();
+    if (!command) return;
+
+    const btn = document.getElementById('btn-edit');
+    const status = document.getElementById('edit-status');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Editing...';
+    status.className = 'edit-status active';
+    status.textContent = '🔍 Analyzing scene...';
+
+    logEntry(`✏️ Edit: "${command}"`, 'agent');
+
+    fetch(API_URL + '/api/edit_scene', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            logEntry('Edit error: ' + data.error, 'error');
+            resetEditBtn();
+            status.className = 'edit-status error';
+            status.textContent = '❌ ' + data.error;
+            return;
+        }
+        logEntry(`📋 Edit job: ${data.job_id}`, 'info');
+        connectEditSSE(data.job_id);
+    })
+    .catch(err => {
+        logEntry('Edit failed: ' + err, 'error');
+        resetEditBtn();
+        status.className = 'edit-status error';
+        status.textContent = '❌ Request failed';
+    });
+}
+
+function connectEditSSE(jobId) {
+    const editES = new EventSource(API_URL + `/api/events/${jobId}`);
+    const status = document.getElementById('edit-status');
+
+    editES.onmessage = (e) => {
+        const event = JSON.parse(e.data);
+        const t = event.type;
+        const d = event.data || {};
+
+        switch (t) {
+            case 'edit_phase':
+                status.className = 'edit-status active';
+                status.textContent = d.message || d.phase || 'Working...';
+                logEntry(`✏️ ${d.message || d.phase}`, 'info');
+                break;
+
+            case 'edit_action':
+                logEntry(`⚡ Action ${d.index}/${d.total}: ${d.action_type} — ${d.description || ''}`, 'tool');
+                status.textContent = `⚡ ${d.action_type} (${d.index}/${d.total})`;
+                break;
+
+            case 'edit_spawn':
+                logEntry(`📦 Spawned: ${d.blueprint}${d.success ? '' : ' (FAILED)'}`, d.success ? 'success' : 'error');
+                break;
+
+            case 'edit_complete':
+                logEntry(`✅ Edit complete! ${d.actions_executed} actions: ${d.description}`, 'success');
+                status.className = 'edit-status success';
+                status.textContent = `✅ ${d.description} (${d.actions_executed} actions)`;
+                resetEditBtn();
+                editES.close();
+                break;
+
+            case 'error':
+                logEntry(`❌ Edit error: ${d.message}`, 'error');
+                status.className = 'edit-status error';
+                status.textContent = '❌ ' + d.message;
+                resetEditBtn();
+                editES.close();
+                break;
+
+            case 'done':
+                resetEditBtn();
+                editES.close();
+                break;
+
+            case 'heartbeat':
+                break;
+
+            default:
+                break;
+        }
+    };
+
+    editES.onerror = () => {
+        editES.close();
+        resetEditBtn();
+    };
+}
+
+function resetEditBtn() {
+    const btn = document.getElementById('btn-edit');
+    btn.disabled = false;
+    btn.innerHTML = '✏️ Edit Scene';
 }
 
 // ─── Images / Gallery ────────────────────────────────────────────────────────

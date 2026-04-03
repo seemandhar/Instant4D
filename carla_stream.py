@@ -216,8 +216,21 @@ def carla_loop():
         try:
             print("[STREAM] Connecting to CARLA at {}:{}...".format(CARLA_HOST, CARLA_PORT))
             client = carla.Client(CARLA_HOST, CARLA_PORT)
-            client.set_timeout(10.0)
-            world = client.get_world()
+            client.set_timeout(30.0)  # Higher timeout for map loads / heavy scenes
+            # Retry world connection up to 5 times (CARLA may be loading a map)
+            world = None
+            for _attempt in range(5):
+                try:
+                    world = client.get_world()
+                    break
+                except RuntimeError as re:
+                    if "time-out" in str(re).lower():
+                        print("[STREAM] CARLA busy (timeout), retrying in 3s... ({}/5)".format(_attempt + 1))
+                        time.sleep(3)
+                    else:
+                        raise
+            if world is None:
+                raise RuntimeError("Could not connect to CARLA after 5 attempts")
             carla_client = client
             carla_world = world
 
@@ -300,8 +313,8 @@ def carla_loop():
             break
         except Exception as e:
             cam_state.connected = False
-            print("[STREAM] Error: {}. Reconnecting in 2s...".format(e))
-            time.sleep(2)
+            print("[STREAM] Error: {}. Reconnecting in 3s...".format(e))
+            time.sleep(3)
         finally:
             cam_state.connected = False
             if camera is not None:

@@ -356,21 +356,25 @@ function resetDemoBtn() {
 
 // ─── Generate Scene (via Flask pipeline API) ─────────────────────────────────
 
-function generateScene() {
+function generateScene(mode) {
+    mode = mode || 'new';
     const prompt = document.getElementById('prompt').value.trim();
     if (!prompt) { logEntry('Enter a scene description.', 'error'); return; }
 
     const model = document.getElementById('model').value;
-    const btn = document.getElementById('btn-generate');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Generating...';
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnEdit = document.getElementById('btn-edit');
+    btnGenerate.disabled = true;
+    btnEdit.disabled = true;
+    const activeBtn = mode === 'edit' ? btnEdit : btnGenerate;
+    activeBtn.innerHTML = '<span class="spinner"></span> ' + (mode === 'edit' ? 'Editing...' : 'Generating...');
 
-    logEntry('Starting scene generation pipeline...', 'agent');
+    logEntry(`Starting ${mode === 'edit' ? 'scene edit' : 'new scene generation'} pipeline...`, 'agent');
 
     fetch(API_URL + '/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model }),
+        body: JSON.stringify({ prompt, model, mode }),
     })
     .then(r => r.json())
     .then(data => {
@@ -445,9 +449,12 @@ function handlePipelineEvent(event) {
 }
 
 function resetGenerateBtn() {
-    const btn = document.getElementById('btn-generate');
-    btn.disabled = false;
-    btn.textContent = 'Generate Scene';
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnEdit = document.getElementById('btn-edit');
+    btnGenerate.disabled = false;
+    btnEdit.disabled = false;
+    btnGenerate.textContent = 'New Scene';
+    btnEdit.textContent = 'Edit Scene';
 }
 
 // ─── Images / Gallery ────────────────────────────────────────────────────────

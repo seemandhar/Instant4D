@@ -264,12 +264,28 @@ def carla_loop():
                     print("[STREAM] Camera destroyed externally. Reconnecting...")
                     break
 
-                # Check if world switched to sync mode (pipeline started)
+                # Check if world switched to sync mode (pipeline running)
                 try:
                     settings = world.get_settings()
                     if settings.synchronous_mode:
-                        print("[STREAM] Sync mode detected (pipeline running). Reconnecting after it finishes...")
-                        break
+                        print("[STREAM] Sync mode detected (pipeline running). Pausing stream...")
+                        cam_state.connected = False
+                        # Wait for async mode to return instead of full reconnect
+                        waited = _wait_for_async_mode(client, timeout=120)
+                        if waited is not None:
+                            world = waited
+                            carla_world = world
+                            cam_state.connected = True
+                            print("[STREAM] Pipeline finished. Resuming stream...")
+                            # Re-check if camera is still alive (load_world destroys it)
+                            if not camera.is_alive:
+                                print("[STREAM] Camera was destroyed during pipeline. Reconnecting...")
+                                break
+                            # Camera survived — continue streaming the updated scene
+                            continue
+                        else:
+                            print("[STREAM] Timed out waiting for async mode. Reconnecting...")
+                            break
                 except Exception:
                     print("[STREAM] Lost world reference. Reconnecting...")
                     break

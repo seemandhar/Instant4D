@@ -47,13 +47,18 @@ def generate_scene():
         return jsonify({"error": "prompt is required"}), 400
 
     model = data.get("model", "sonnet")
+    mode = data.get("mode", "new")  # "new" or "edit"
     job_id = str(uuid.uuid4())[:8]
+
+    # Gather current scene context from CARLA
+    scene_context = _get_scene_context()
 
     # Create job
     jobs[job_id] = {
         "id": job_id,
         "prompt": prompt,
         "model": model,
+        "mode": mode,
         "status": "running",
         "events": Queue(),
         "result": None,
@@ -61,7 +66,7 @@ def generate_scene():
     }
 
     # Run pipeline in background thread
-    t = threading.Thread(target=_run_pipeline_bg, args=(job_id, prompt, model), daemon=True)
+    t = threading.Thread(target=_run_pipeline_bg, args=(job_id, prompt, model, mode, scene_context), daemon=True)
     t.start()
 
     return jsonify({"job_id": job_id, "status": "running"})
@@ -286,6 +291,39 @@ print(json.dumps({
         return jsonify({"error": f"Unknown action: {action}"}), 400
 
 
+def _get_scene_context() -> dict:
+    """Get current CARLA scene state for the pipeline."""
+    try:
+        result = _run_carla_command("""
+import carla, json
+client = carla.Client('localhost', 2000)
+client.set_timeout(10.0)
+world = client.get_world()
+m = world.get_map()
+spectator = world.get_spectator()
+t = spectator.get_transform()
+actors = world.get_actors()
+vehicles = len([a for a in actors if a.type_id.startswith('vehicle.')])
+walkers = len([a for a in actors if a.type_id.startswith('walker.')])
+props = len([a for a in actors if a.type_id.startswith('static.prop.')])
+weather = world.get_weather()
+print(json.dumps({
+    "map": m.name,
+    "camera": {"x": round(t.location.x, 1), "y": round(t.location.y, 1), "z": round(t.location.z, 1),
+               "pitch": round(t.rotation.pitch, 1), "yaw": round(t.rotation.yaw, 1)},
+    "vehicles": vehicles,
+    "walkers": walkers,
+    "props": props,
+    "weather": {"cloudiness": weather.cloudiness, "sun_altitude": weather.sun_altitude_angle}
+}))
+""")
+        if result.strip().startswith("{"):
+            return json.loads(result)
+    except Exception as e:
+        log.warning("Could not get scene context: %s", e)
+    return {"map": "unknown", "camera": {"x": 0, "y": 0, "z": 20, "pitch": -30, "yaw": 0}, "vehicles": 0, "walkers": 0, "props": 0}
+
+
 def _run_carla_command(script: str, timeout: int = 60) -> str:
     """Execute a CARLA Python script and return stdout."""
     try:
@@ -371,7 +409,7 @@ def demo_status(job_id):
     })
 
 
-def _run_pipeline_bg(job_id: str, prompt: str, model: str):
+def _run_pipeline_bg(job_id: str, prompt: str, model: str, mode: str = "new", scene_context: dict = None):
     """Run pipeline in background thread."""
     job = jobs[job_id]
 
@@ -385,6 +423,8 @@ def _run_pipeline_bg(job_id: str, prompt: str, model: str):
             config=config,
             event_callback=event_cb,
             model=model,
+            mode=mode,
+            scene_context=scene_context or {},
         ))
         job["result"] = result
         job["status"] = "completed" if result.get("success") else "failed"

@@ -59,12 +59,19 @@
                                 <option value="opus">Opus (higher quality)</option>
                             </select>
                         </div>
-                        <button id="btn-generate" class="btn btn-primary btn-full" onclick="generateScene()">
-                            🤖 Generate Scene
-                        </button>
-                        <div style="text-align:center; margin: 6px 0; color: var(--text-muted); font-size: 11px;">— or —</div>
-                        <button id="btn-demo" class="btn btn-full" style="background: var(--accent-secondary, #7c3aed); color: white;" onclick="loadDemo()">
-                            ⚡ Load Demo Scene (Rainy Night Roadblock)
+                        <div class="btn-row" style="gap: 6px; margin-bottom: 6px;">
+                            <button id="btn-generate" class="btn btn-primary" style="flex:1" onclick="generateScene('new')">
+                                New Scene
+                            </button>
+                            <button id="btn-edit" class="btn" style="flex:1; background: var(--accent-secondary, #7c3aed); color: white;" onclick="generateScene('edit')">
+                                Edit Scene
+                            </button>
+                        </div>
+                        <div style="text-align:center; margin: 4px 0; color: var(--text-muted); font-size: 10px;">
+                            New = fresh world from scratch | Edit = add to current scene
+                        </div>
+                        <button id="btn-demo" class="btn btn-full" style="margin-top:4px; background: #444; color: white; font-size: 11px;" onclick="loadDemo()">
+                            ⚡ Load Demo Scene
                         </button>
                     </section>
 

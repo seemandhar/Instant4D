@@ -50,6 +50,8 @@ async def run_pipeline(
     config: PipelineConfig = None,
     event_callback=None,
     model: str = None,
+    mode: str = "new",
+    scene_context: dict = None,
 ):
     """Run the multi-agent scene generation pipeline.
 
@@ -58,12 +60,16 @@ async def run_pipeline(
         config: Pipeline configuration
         event_callback: Optional callback(PipelineEvent) for streaming events
         model: Model override for orchestrator (e.g., "sonnet", "opus")
+        mode: "new" for fresh scene, "edit" to modify current scene
+        scene_context: Current CARLA scene state (map, camera, actors)
 
     Returns:
         dict with pipeline results
     """
     if config is None:
         config = PipelineConfig()
+    if scene_context is None:
+        scene_context = {}
 
     _ensure_dirs(config)
 
@@ -73,11 +79,16 @@ async def run_pipeline(
             event_callback(event)
         return event
 
-    emit("pipeline_start", {"prompt": user_prompt})
+    emit("pipeline_start", {"prompt": user_prompt, "mode": mode})
 
     # Build agent definitions
     agents = build_agent_definitions(config)
     emit("agents_loaded", {"agents": list(agents.keys())})
+
+    # Format scene context for the orchestrator
+    ctx_str = json.dumps(scene_context, indent=2) if scene_context else "No scene context available."
+    keep_map = "true" if mode == "edit" else "false"
+    clear_existing = "false" if mode == "edit" else "true"
 
     # Build orchestrator prompt
     orchestrator_prompt = ORCHESTRATOR_PROMPT_TEMPLATE.format(
@@ -85,6 +96,10 @@ async def run_pipeline(
         carla_python=config.carla_python,
         max_review_iterations=config.max_review_iterations,
         max_fix_iterations=config.max_fix_iterations,
+        mode=mode,
+        scene_context=ctx_str,
+        keep_map=keep_map,
+        clear_existing=clear_existing,
     )
 
     # Auth - CLI handles its own auth via ~/.claude/.credentials.json
@@ -226,7 +241,7 @@ async def run_cli(prompt: str, model: str = None):
         elif t == "error":
             print(f"\n  ERROR: {d['message']}")
 
-    result = await run_pipeline(prompt, event_callback=console_callback, model=model)
+    result = await run_pipeline(prompt, event_callback=console_callback, model=model, mode="new")
 
     if result["success"]:
         print(f"\n  Images: {result.get('images', [])}")

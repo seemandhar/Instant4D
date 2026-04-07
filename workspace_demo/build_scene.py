@@ -639,14 +639,10 @@ finally:
         print(f"[result]  WARNING: could not write render_result.json: {write_exc}")
 
     # ------------------------------------------------------------------
-    # Destroy all actors we spawned (cameras first via reversed order)
+    # KEEP actors alive so the scene persists in the CARLA viewport.
+    # The streaming camera will show the scene after async mode is restored.
     # ------------------------------------------------------------------
-    print(f"[cleanup] Destroying {len(all_actors)} spawned actor(s) ...")
-    for actor in reversed(all_actors):
-        try:
-            actor.destroy()
-        except Exception:
-            pass
+    print(f"[persist] Keeping {len(all_actors)} spawned actor(s) alive in the world.")
 
     # ------------------------------------------------------------------
     # Restore asynchronous mode
